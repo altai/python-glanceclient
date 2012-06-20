@@ -21,6 +21,9 @@ import urllib
 
 from glanceclient.common import base
 
+
+from openstackclient_base.client import FileReaderIterator
+
 UPDATE_PARAMS = ('name', 'disk_format', 'container_format', 'min_disk',
                  'min_ram', 'owner', 'size', 'is_public', 'protected',
                  'location', 'checksum', 'copy_from', 'properties')
@@ -29,6 +32,8 @@ CREATE_PARAMS = UPDATE_PARAMS + ('id',)
 
 
 class Image(base.Resource):
+    data = None
+
     def __repr__(self):
         return "<Image %s>" % self._info
 
@@ -45,9 +50,10 @@ class Image(base.Resource):
 class ImageManager(base.Manager):
     resource_class = Image
 
-    def _image_meta_from_headers(self, headers):
+    def _image_meta_from_headers(self, response):
+        headers = response.getheaders()
         meta = {'properties': {}}
-        for key, value in headers.iteritems():
+        for key, value in headers:
             if key.startswith('x-image-meta-property-'):
                 _key = key[22:]
                 meta['properties'][_key] = value
@@ -65,15 +71,19 @@ class ImageManager(base.Manager):
             headers['x-image-meta-%s' % key] = str(value)
         return headers
 
-    def get(self, image_id):
+    def get(self, image_id, fetch=False):
         """Get the metadata for a specific image.
 
         :param image: image object or id to look up
         :rtype: :class:`Image`
         """
-        resp, body = self.api.raw_request('HEAD', '/v1/images/%s' % image_id)
+        resp, body = self.api.cs_request('/v1/images/%s' % image_id,
+                                         "GET" if fetch else "HEAD",
+                                         read_body=False)
         meta = self._image_meta_from_headers(resp)
-        return Image(self, meta)
+        img = Image(self, meta)
+        img.data = FileReaderIterator(resp)
+        return img
 
     def data(self, image):
         """Get the raw data for a specific image.
@@ -108,7 +118,7 @@ class ImageManager(base.Manager):
 
     def _get_file_size(self, obj):
         """Analyze file-like object and attempt to determine its size.
-
+ 
         :param obj: file-like object, typically redirected from stdin.
         :retval The file's size or None if it cannot be determined.
         """
@@ -156,9 +166,9 @@ class ImageManager(base.Manager):
         if copy_from is not None:
             hdrs['x-glance-api-copy-from'] = copy_from
 
-        resp, body = self.api.raw_request(
-                'POST', '/v1/images', headers=hdrs, body=image_data)
-        return Image(self, json.loads(body)['image'])
+        resp, body = self.api.post(
+                '/v1/images', headers=hdrs, body=image_data)
+        return Image(self, body['image'])
 
     def update(self, image, **kwargs):
         """Update an image
@@ -187,6 +197,6 @@ class ImageManager(base.Manager):
             hdrs['x-glance-api-copy-from'] = copy_from
 
         url = '/v1/images/%s' % base.getid(image)
-        resp, body = self.api.raw_request(
-                'PUT', url, headers=hdrs, body=image_data)
-        return Image(self, json.loads(body)['image'])
+        resp, body = self.api.put(
+                url, headers=hdrs, body=image_data)
+        return Image(self, body['image'])
