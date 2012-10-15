@@ -5,9 +5,7 @@
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
 %endif
 
-%global os_release essex
-
-Name:             python-glanceclient-%{os_release}
+Name:             python-glanceclient
 Version:          2012.1
 Release:          1%{?dist}
 Epoch:            1
@@ -19,7 +17,7 @@ Vendor:           Grid Dynamics Consulting Services, Inc.
 URL:              http://www.openstack.org
 Source0:          %{name}-%{version}.tar.gz
 
-BuildRoot:        %{_tmppath}/%{name}-%{version}
+BuildRoot:        %{_tmppath}/%{name}-%{version}-%{release}
 
 BuildArch:        noarch
 BuildRequires:    python-setuptools
@@ -29,10 +27,10 @@ BuildRequires:    python-sphinx make
 %endif
 
 Requires:         python-httplib2
-Requires:         python-prettytable
+Requires:         python-prettytable==0.6
 Requires:         python-argparse
 
-Conflicts:        python-glanceclient
+Obsoletes:        %{name}-essex
 
 %description
 This is a client for the OpenStack Glance API. There is a Python API (the
