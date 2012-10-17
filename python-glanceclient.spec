@@ -27,7 +27,7 @@ BuildRequires:    python-sphinx make
 %endif
 
 Requires:         python-httplib2
-Requires:         python-prettytable==0.6
+Requires:         python-prettytable = 0.6
 Requires:         python-argparse
 
 Obsoletes:        %{name}-essex
