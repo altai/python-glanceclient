@@ -1,4 +1,3 @@
-%global enable_doc 0
 %define mod_name glanceclient
 
 %if ! (0%{?fedora} > 12 || 0%{?rhel} > 5)
@@ -22,8 +21,9 @@ BuildRoot:        %{_tmppath}/%{name}-%{version}-%{release}
 BuildArch:        noarch
 BuildRequires:    python-setuptools
 
-%if 0%{?enable_doc}
-BuildRequires:    python-sphinx make
+%if 0%{?with_doc}
+BuildRequires:    python-sphinx10
+BuildRequires:    make
 %endif
 
 Requires:         python-httplib2
@@ -37,7 +37,7 @@ This is a client for the OpenStack Glance API. There is a Python API (the
 glanceclient module), and a command-line script (glance).
 
 
-%if 0%{?enable_doc}
+%if 0%{?with_doc}
 %package doc
 Summary:        Documentation for %{name}
 Group:          Documentation
@@ -62,8 +62,11 @@ rm -rf %{buildroot}
 
 %{__python} setup.py install -O1 --skip-build --root %{buildroot}
 
-%if 0%{?enable_doc}
-make -C docs html PYTHONPATH=%{buildroot}%{python_sitelib}
+%if 0%{?with_doc}
+PYTHONPATH="$PWD:$PYTHONPATH" sphinx-1.0-build -b html -d doc/build/doctrees doc/source doc/build/html
+
+# Fix hidden-file-or-dir warnings
+rm -fr doc/build/html/.buildinfo
 %endif
 
 # FIXME: remove it when `glance` will be removed from
@@ -81,10 +84,10 @@ rm -rf %{buildroot}
 #%{_usr}/bin/*
 
 
-%if 0%{?enable_doc}
+%if 0%{?with_doc}
 %files doc
 %defattr(-,root,root,-)
-%doc docs/_build/html
+%doc doc/build/html
 %endif
 
 
